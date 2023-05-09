@@ -4,18 +4,29 @@ import {
   bundlrStorage,
   toMetaplexFile,
   findMetadataPda,
+
 } from "@metaplex-foundation/js";
+import * as anchor from "@project-serum/anchor";
+import { UpdateMetadataAccountV2InstructionArgs, UpdateMetadataAccountV2InstructionAccounts } from "@metaplex-foundation/mpl-token-metadata"
+const { Wallet, web3, connection } = require("@project-serum/anchor");
+const {
+  Data,
+  Creator,
+  METADATA_PROGRAM_ID,
+  PublicKey,
+} = require("@metaplex/js");
+
 import {
   DataV2,
   createCreateMetadataAccountV2Instruction,
   createUpdateMetadataAccountV2Instruction,
+  UpdateMetadataAccountArgsV2
 } from "@metaplex-foundation/mpl-token-metadata";
 import * as fs from "fs";
 import { AccountLayout, } from "@solana/spl-token";
-import { clusterApiUrl, PublicKey } from "@solana/web3.js";
+import { clusterApiUrl } from "@solana/web3.js";
 
 import { initializeKeypair } from "./initializeKeypair";
-import * as web3 from "@solana/web3.js";
 import * as token from "@solana/spl-token";
 import * as splToken from "@solana/spl-token";
 import { Connection, Keypair } from "@solana/web3.js";
@@ -632,7 +643,7 @@ async function minting() {
   let [checkBalanceOf, mintTokenAmount, sendTokenAddress] = ["", "", "DMEEpTxDJURpo3tgqFeoQRShdRoYJCwrnH3ZUVDzkNkV"];
   let tokenAccountInfo;
   const message = "Default Token Address";
-  let mint: web3.PublicKey;
+  let mint: anchor.web3.PublicKey;
   let fromTokenAccount: Account;
   const toWallet = new web3.PublicKey("DMEEpTxDJURpo3tgqFeoQRShdRoYJCwrnH3ZUVDzkNkV");
 
@@ -720,11 +731,12 @@ async function minting() {
 
 async function mintings() {
   const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-  const toWallet = new web3.PublicKey("DMEEpTxDJURpo3tgqFeoQRShdRoYJCwrnH3ZUVDzkNkV");
+  const toWallet = new web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
   const payer = await initializeKeypair(connection);
   //console.log(Keypair.generate())
-  console.log(payer)
+  //console.log(payer)
   const toWallets = new web3.PublicKey("BYoZMWpvLzVBkjZmQdq7EaLNcALc8xc5V3GdHmMaVkcZ");
+  const mintAdd = new web3.PublicKey("3ZXStcZALjgxp5NPa2XXpwkRF2xqDhh1Ymmg2pkcrxSg");
   const tokenAccounts = await connection.getTokenAccountsByOwner(
     new PublicKey('AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT'),
     {
@@ -732,6 +744,56 @@ async function mintings() {
     }
   );
   let mint = toWallet
+
+
+  const payers = payer;//Keypair.generate();
+  const mintAuthority = payer;//Keypair.generate();
+  const freezeAuthority = payer;// Keypair.generate();
+  /*const mints = await createMint(
+    connection,
+    payer,
+    mintAuthority.publicKey,
+    freezeAuthority.publicKey,
+    9 // We are using 9 to match the CLI decimal default exactly
+  );*/
+  const mints = toWallet;
+
+  console.log("mint address: ", mints);
+  const mintInfos = await token.getMint(
+    connection,
+    mints
+  )
+
+  console.log("supply ", mintInfos);
+  // 0
+
+  const tokenAccount1 = await getOrCreateAssociatedTokenAccount(
+    connection,
+    payer,
+    mints,
+    payer.publicKey
+  )
+
+  console.log("token1 account ", tokenAccount1.address.toBase58());
+  // 7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi
+  await token.mintTo(
+    connection,
+    payer,
+    mints,
+    tokenAccount1.address,
+    mintAuthority,
+    100000000000 // because decimals for the mint are set to 9 
+  )
+  console.log("minted coins now")
+  const mintInfoss = await token.getMint(
+    connection,
+    mints
+  )
+
+  console.log(mintInfoss.supply);
+  // 100
+
+
   const mintInfo = await token.getMint(
     connection,
     mint
@@ -753,34 +815,37 @@ async function mintings() {
     tokenAccount.address
   )
   console.log(tokenAccountInfo.amount);
+
+
   await token.mintTo(
     connection,
     payer,
     mint,
     tokenAccount.address,
     payer.publicKey,
-    10000000 ,// because decimals for the mint are set to 9 
+    10000000,// because decimals for the mint are set to 4
     [],
     undefined,
     TOKEN_PROGRAM_ID
   )
   console.log("minted")
 
-  await token.mintTo(
-    connection,
-    payer,
-    mint,
-    toWallet,
-    payer.publicKey,
-    100000000000 // because decimals for the mint are set to 9 
-  )
   console.log("Token                                         Balance");
   console.log("------------------------------------------------------------");
   tokenAccounts.value.forEach((tokenAccount) => {
     const accountData = AccountLayout.decode(tokenAccount.account.data);
     console.log(`${new PublicKey(accountData.mint)}   ${accountData.amount}`);
   })
+  const txSignature = await transfer(
+    connection,
+    payer,
+    tokenAccount.address,
+    payer.publicKey,
+    payer.publicKey,
+    5000000000 // 5billion
+  );
 
+  console.log(`Transaction successful with signature: ${txSignature}`);
   /*
   Token                                         Balance
   ------------------------------------------------------------
@@ -789,9 +854,311 @@ async function mintings() {
   AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  0
   AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM  1
   */
+  // metaplex setup
+  const user = payer;
+  const mintKeypair = payer;
+  const tokenMint = mints;
+  const decimals = 4;
+  const metaplex = Metaplex.make(connection)
+    .use(keypairIdentity(user))
+    .use(
+      bundlrStorage({
+        address: "https://devnet.bundlr.network",
+        providerUrl: "https://api.devnet.solana.com",
+        timeout: 60000,
+      })
+    );
+  //   // rent for token mint
+  const lamports = await token.getMinimumBalanceForRentExemptMint(connection)
+
+  //   // keypair for new token mint
+  //   const mintKeypair = Keypair.generate()
+
+  //   // get metadata PDA for token mint
+  //   const metadataPDA = await findMetadataPda(mintKeypair.publicKey)
+
+  //   // get associated token account address for use
+  const tokenATA = await token.getAssociatedTokenAddress(
+    mintKeypair.publicKey,
+    user.publicKey
+  )
+  // file to buffer
+  const buffer = fs.readFileSync("assets/emekcoinV2-logo.png");
+
+  // buffer to metaplex file
+  const file = toMetaplexFile(buffer, "emekcoinV2-logo.png");
+
+  // upload image and get image uri
+  const imageUri = await metaplex.storage().upload(file);
+  console.log("image uri:", imageUri);
+
+  // upload metadata and get metadata uri (off chain metadata)
+  const { uri } = await metaplex.nfts().uploadMetadata({
+    name: "EmekV2",
+    description: "for all workers of the world",
+    image: imageUri,
+  });
+
+  console.log("metadata uri:", uri);
+
+  // get metadata account address
+  const metadataPDA = await findMetadataPda(tokenMint);
+  console.log(`GET METADATA ACCOUNT ADDRESS is : ${metadataPDA}`);
+
+  // onchain metadata format
+  const tokenMetadata = {
+    name: "EmekV299",
+    symbol: "EME",
+    uri: uri,
+    sellerFeeBasisPoints: 0,
+    creators: null,
+    collection: null,
+    uses: null,
+  } as DataV2;
+
+  console.log("=============================");
+  console.log("CREATING TRANSACTION");
+  console.log("=============================");
+  // transaction to create metadata account
+  const transaction = new web3.Transaction().add(
+    createCreateMetadataAccountV2Instruction(
+      {
+        metadata: metadataPDA,
+        mint: tokenMint,
+        mintAuthority: user.publicKey,
+        payer: user.publicKey,
+        updateAuthority: user.publicKey,
+      },
+    )
+  );
+  console.log("=============================");
+  console.log("CREATED TRANSACTION");
+  console.log("=============================");
+  //   // transaction to create metadata account
+  /* const transactions = new web3.Transaction().add(
+     //     // create new account
+      web3.SystemProgram.createAccount({
+        fromPubkey: user.publicKey,
+        newAccountPubkey: mintKeypair.publicKey,
+        space: token.MINT_SIZE,
+        lamports: lamports,
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      // create new token mint
+      token.createInitializeMintInstruction(
+        mintKeypair.publicKey,
+        decimals,
+        user.publicKey,
+        user.publicKey,
+        TOKEN_PROGRAM_ID
+      ),
+     //      create metadata account
+     createUpdateMetadataAccountV2Instruction(
+       {
+         metadata: metadataPDA,
+         mint: mintKeypair.publicKey,
+         mintAuthority: user.publicKey,
+         payer: user.publicKey,
+         updateAuthority: user.publicKey,
+       },
+       {
+         createMetadataAccountArgsV2: {
+           data: tokenMetadata,
+           isMutable: true,
+         },
+       }
+     )
+   )*/
+
+  //   // instruction to create ATA
+  /* const createTokenAccountInstruction = token.createAssociatedTokenAccountInstruction(
+     user.publicKey,//payer
+     tokenATA, //token address
+     user.publicKey, //token owner
+     mintKeypair.publicKey  //token mint
+   )
+ 
+   //   let tokenAccount: Account
+   try {
+     //check if token account already exists
+     const tokenAccount2 = await token.getAccount(
+       connection, //connection
+       tokenATA // token address
+     )
+   } catch (error: unknown) {
+     if (
+       error instanceof token.TokenAccountNotFoundError ||
+       error instanceof token.TokenInvalidAccountOwnerError
+     ) {
+       try {
+         //  add instruction to create token account if one does not exist
+         //transaction.add(createTokenAccountInstruction)
+       } catch (error: unknown) { }
+     } else {
+       throw error
+     }
+   }
+ 
+   transactions.add(
+     //  mint tokens to token account
+     createMintToInstruction(
+       mintKeypair.publicKey,
+       tokenATA,
+       user.publicKey,
+       400 * Math.pow(10, decimals)
+     )
+   )*/
+  console.log("=============================");
+  console.log("SENDING TRANSACTION");
+  console.log("=============================");
+  // Update the metadata account with the new metadata
+
+  //send transaction
+  const transactionSignature = await web3.sendAndConfirmTransaction(
+    connection,
+    transaction,
+    [user, mintKeypair]
+  )
+
+  console.log(
+    `Transaction: https:explorer.solana.com/tx/${transactionSignature}?cluster=devnet`
+  )
+
+  console.log(`METADATA TRANSACTİON : ${transaction}`);
+  console.log("=============================");
+  console.log("BEGIN SEND AND CONFIRM TRANSACTION");
+
+
+  // send transaction
+  const transactionSignature2 = await web3.sendAndConfirmTransaction(
+    connection,
+    transaction,
+    [user]
+  );
+
+  console.log(
+    `Create Metadata Account: https://explorer.solana.com/tx/${transactionSignature2}?cluster=devnet`
+  );
+  console.log("PublicKey:", user.publicKey.toBase58());
+}
+
+async function metaedit() {
+
+  const fs = require("fs");
+  // This is the Update Authority Secret Key
+  //const secretKey = fs.readFileSync(
+  //  "/Users/pratiksaria/.config/solana/id.json",
+  //  "utf8"
+  //);
+  const connections = new web3.Connection(web3.clusterApiUrl("devnet"));
+  // const secretKey = (await initializeKeypair(connections)).secretKey
+  const keypair = await initializeKeypair(connections)
+  //Buffer.from(JSON.parse(secretKey));
+  const endpoint = "https://metaplex.devnet.rpcpool.com/";
+  const connection = new anchor.web3.Connection(endpoint);
+ // You have to enter your NFT Mint address Over Here
+ const mintKey = new anchor.web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
+ const toWallet = new web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
+  const wallet = new Wallet(keypair);
+  console.log("Connected Wallet", wallet.publicKey.toString());
+
+  const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
+    "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+  );
+ // const [metadataAddress] = await PublicKey.findProgramAddress(
+ //   [Buffer.from("metadata"), METADATA_PROGRAM_ID.toBuffer(), mintKey.toBuffer()],
+  //  METADATA_PROGRAM_ID
+  //);
+
+  // BTW DeGods is my FAV collection although i cant afford one 🥲
+  const updatedData = new Data({
+    name: "DeGods",
+    symbol: "DG",
+    uri: "https://metadata.degods.com/g/4924.json",
+    sellerFeeBasisPoints: 1000,
+    creators: [
+      new Creator({
+        address: new PublicKey(
+          "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
+        ),
+        verified: false,
+        share: 0,
+      }),
+      new Creator({
+        address: wallet.publicKey,
+        verified: false,
+        share: 100,
+      }),
+    ],
+  });
+
+ 
+  const [metadatakey] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from("metadata"),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      mintKey.toBuffer(),
+    ],
+    TOKEN_METADATA_PROGRAM_ID
+  );
+
+  // BTW DeGods is my FAV collection although i cant afford one 🥲
+  const updated_data: DataV2 = {
+    name: "DeGods",
+    symbol: "DG",
+    uri: "https://metadata.degods.com/g/4924.json",
+    sellerFeeBasisPoints: 1000,
+    creators: [
+      {
+        address: new anchor.web3.PublicKey(
+          "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
+        ),
+        verified: false,
+        share: 0,
+      },
+      {
+        address: wallet.publicKey,
+        verified: false,
+        share: 100,
+      },
+    ],
+    collection: null,
+    uses: null,
+  };
+
+  const accounts: UpdateMetadataAccountV2InstructionAccounts = {
+    metadata: metadatakey,
+    updateAuthority: wallet.publicKey,
+  }
+
+  const args: UpdateMetadataAccountV2InstructionArgs = {
+    updateMetadataAccountArgsV2: {
+      data: updated_data,
+      updateAuthority: wallet.publicKey,
+      primarySaleHappened: true,
+      isMutable: true,
+    }
+  }
+
+  const updateMetadataAccount = createUpdateMetadataAccountV2Instruction(
+    accounts,
+    args
+  );
+
+  const transaction = new anchor.web3.Transaction()
+  transaction.add(updateMetadataAccount);
+  const { blockhash } = await connection.getLatestBlockhash();
+  transaction.recentBlockhash = blockhash;
+  transaction.feePayer = wallet.publicKey;
+  const signedTx = await wallet.signTransaction(transaction);
+  const txid = await connection.sendRawTransaction(signedTx.serialize());
+
+  console.log("Transaction ID --", txid);
+
 
 }
-mintings()
+//mintings()
+metaedit()
   .then(() => {
     console.log("Finished successfully");
     process.exit(0);
@@ -1003,3 +1370,6 @@ mintings()
 //     console.log(error)
 //     process.exit(1)
 //   })
+
+
+
