@@ -20,7 +20,8 @@ import {
   DataV2,
   createCreateMetadataAccountV2Instruction,
   createUpdateMetadataAccountV2Instruction,
-  UpdateMetadataAccountArgsV2
+  UpdateMetadataAccountArgsV2,
+  CreateMetadataAccountArgsV3
 } from "@metaplex-foundation/mpl-token-metadata";
 import * as fs from "fs";
 import { AccountLayout, } from "@solana/spl-token";
@@ -28,6 +29,7 @@ import { clusterApiUrl } from "@solana/web3.js";
 
 import { initializeKeypair } from "./initializeKeypair";
 import * as token from "@solana/spl-token";
+import * as solana from "@solana/web3.js";
 import * as splToken from "@solana/spl-token";
 import { Connection, Keypair } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintToChecked, setAuthority, Account, transfer, createMintToInstruction } from "@solana/spl-token";
@@ -1069,39 +1071,6 @@ async function metaedit() {
  //   [Buffer.from("metadata"), METADATA_PROGRAM_ID.toBuffer(), mintKey.toBuffer()],
   //  METADATA_PROGRAM_ID
   //);
-
-  // BTW DeGods is my FAV collection although i cant afford one 🥲
-  const updatedData = new Data({
-    name: "DeGods",
-    symbol: "DG",
-    uri: "https://metadata.degods.com/g/4924.json",
-    sellerFeeBasisPoints: 1000,
-    creators: [
-      new Creator({
-        address: new PublicKey(
-          "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
-        ),
-        verified: false,
-        share: 0,
-      }),
-      new Creator({
-        address: wallet.publicKey,
-        verified: false,
-        share: 100,
-      }),
-    ],
-  });
-
- 
-  const [metadatakey] = await anchor.web3.PublicKey.findProgramAddress(
-    [
-      Buffer.from("metadata"),
-      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-      mintKey.toBuffer(),
-    ],
-    TOKEN_METADATA_PROGRAM_ID
-  );
-
   // BTW DeGods is my FAV collection although i cant afford one 🥲
   const updated_data: DataV2 = {
     name: "DeGods",
@@ -1110,7 +1079,7 @@ async function metaedit() {
     sellerFeeBasisPoints: 1000,
     creators: [
       {
-        address: new anchor.web3.PublicKey(
+        address: new solana.PublicKey(
           "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
         ),
         verified: false,
@@ -1126,6 +1095,46 @@ async function metaedit() {
     uses: null,
   };
 
+  const updated_datas: CreateMetadataAccountArgsV3 = {
+    data: updated_data,
+    isMutable: true,
+    collectionDetails: null
+  };
+  console.log("metadata updated",updated_datas)
+ /* 
+  // BTW DeGods is my FAV collection although i cant afford one 🥲
+  const updatedData = new Data({
+    name: "DeGods",
+    symbol: "DG",
+    uri: "https://metadata.degods.com/g/4924.json",
+    sellerFeeBasisPoints: 1000,
+    creators: [
+      new Creator({
+        address: new solana.PublicKey(
+          "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
+        ),
+        verified: false,
+        share: 0,
+      }),
+      new Creator({
+        address: wallet.publicKey,
+        verified: false,
+        share: 100,
+      }),
+    ],
+  });
+
+ */
+  const [metadatakey] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from("metadata"),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      mintKey.toBuffer(),
+    ],
+    TOKEN_METADATA_PROGRAM_ID
+  );
+
+  
   const accounts: UpdateMetadataAccountV2InstructionAccounts = {
     metadata: metadatakey,
     updateAuthority: wallet.publicKey,
