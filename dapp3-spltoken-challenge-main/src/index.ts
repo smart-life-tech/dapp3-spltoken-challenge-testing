@@ -1058,17 +1058,17 @@ async function metaedit() {
   //Buffer.from(JSON.parse(secretKey));
   const endpoint = "https://metaplex.devnet.rpcpool.com/";
   const connection = new anchor.web3.Connection(endpoint);
- // You have to enter your NFT Mint address Over Here
- const mintKey = new anchor.web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
- const toWallet = new web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
+  // You have to enter your NFT Mint address Over Here
+  const mintKey = new anchor.web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
+  const toWallet = new web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
   const wallet = new Wallet(keypair);
   console.log("Connected Wallet", wallet.publicKey.toString());
 
   const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
   );
- // const [metadataAddress] = await PublicKey.findProgramAddress(
- //   [Buffer.from("metadata"), METADATA_PROGRAM_ID.toBuffer(), mintKey.toBuffer()],
+  // const [metadataAddress] = await PublicKey.findProgramAddress(
+  //   [Buffer.from("metadata"), METADATA_PROGRAM_ID.toBuffer(), mintKey.toBuffer()],
   //  METADATA_PROGRAM_ID
   //);
   // BTW DeGods is my FAV collection although i cant afford one 🥲
@@ -1079,8 +1079,8 @@ async function metaedit() {
     sellerFeeBasisPoints: 1000,
     creators: [
       {
-        address: new solana.PublicKey(
-          "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
+        address: new anchor.web3.PublicKey(
+          "AxFuniPo7RaDgPH6Gizf4GZmLQFc4M5ipckeeZfkrPNn"
         ),
         verified: false,
         share: 0,
@@ -1100,31 +1100,31 @@ async function metaedit() {
     isMutable: true,
     collectionDetails: null
   };
-  console.log("metadata updated",updated_datas)
- /* 
-  // BTW DeGods is my FAV collection although i cant afford one 🥲
-  const updatedData = new Data({
-    name: "DeGods",
-    symbol: "DG",
-    uri: "https://metadata.degods.com/g/4924.json",
-    sellerFeeBasisPoints: 1000,
-    creators: [
-      new Creator({
-        address: new solana.PublicKey(
-          "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
-        ),
-        verified: false,
-        share: 0,
-      }),
-      new Creator({
-        address: wallet.publicKey,
-        verified: false,
-        share: 100,
-      }),
-    ],
-  });
-
- */
+  console.log("metadata updated", updated_datas)
+  /* 
+   // BTW DeGods is my FAV collection although i cant afford one 🥲
+   const updatedData = new Data({
+     name: "DeGods",
+     symbol: "DG",
+     uri: "https://metadata.degods.com/g/4924.json",
+     sellerFeeBasisPoints: 1000,
+     creators: [
+       new Creator({
+         address: new solana.PublicKey(
+           "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
+         ),
+         verified: false,
+         share: 0,
+       }),
+       new Creator({
+         address: wallet.publicKey,
+         verified: false,
+         share: 100,
+       }),
+     ],
+   });
+ 
+  */
   const [metadatakey] = await anchor.web3.PublicKey.findProgramAddress(
     [
       Buffer.from("metadata"),
@@ -1133,13 +1133,13 @@ async function metaedit() {
     ],
     TOKEN_METADATA_PROGRAM_ID
   );
+  console.log("key :",metadatakey)
 
-  
   const accounts: UpdateMetadataAccountV2InstructionAccounts = {
     metadata: metadatakey,
     updateAuthority: wallet.publicKey,
   }
-
+  console.log("aacounts  ", accounts)
   const args: UpdateMetadataAccountV2InstructionArgs = {
     updateMetadataAccountArgsV2: {
       data: updated_data,
@@ -1153,13 +1153,19 @@ async function metaedit() {
     accounts,
     args
   );
-
+  console.log("update account ", updateMetadataAccount)
   const transaction = new anchor.web3.Transaction()
   transaction.add(updateMetadataAccount);
+
   const { blockhash } = await connection.getLatestBlockhash();
+  console.log(blockhash)
   transaction.recentBlockhash = blockhash;
   transaction.feePayer = wallet.publicKey;
+
   const signedTx = await wallet.signTransaction(transaction);
+  console.log("transaction signed:", transaction)
+  console.log("transaction signed222:", transaction.signatures)
+
   const txid = await connection.sendRawTransaction(signedTx.serialize());
 
   console.log("Transaction ID --", txid);
