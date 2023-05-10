@@ -18,6 +18,7 @@ export async function initializeKeypair(
   const secret = JSON.parse(process.env.PRIVATE_KEY ?? "") as number[]
   
   const secretKey = Uint8Array.from(secret)
+  console.log(secretKey)
   const keypairFromSecretKey = web3.Keypair.fromSecretKey(secretKey)
   await airdropSolIfNeeded(keypairFromSecretKey, connection)
   return keypairFromSecretKey

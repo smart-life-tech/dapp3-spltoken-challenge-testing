@@ -6,7 +6,7 @@ import {
   findMetadataPda,
 
 } from "@metaplex-foundation/js";
-import * as anchor from "@project-serum/anchor";
+//import * as anchor from "@project-serum/anchor";
 import { UpdateMetadataAccountV2InstructionArgs, UpdateMetadataAccountV2InstructionAccounts } from "@metaplex-foundation/mpl-token-metadata"
 const { Wallet, web3, connection } = require("@project-serum/anchor");
 const {
@@ -350,7 +350,7 @@ async function testing2() {
   console.log("Airdropped (transferred) 1 SOL to the fromWallet to carry out minting operations");
 
   // This createMint function returns a Promise <Token>
-  let mint = await splToken.Token.createMint(
+  let mint = await splToken.createMint(
     connection,
     fromWallet,
     fromWallet.publicKey,
@@ -645,7 +645,7 @@ async function minting() {
   let [checkBalanceOf, mintTokenAmount, sendTokenAddress] = ["", "", "DMEEpTxDJURpo3tgqFeoQRShdRoYJCwrnH3ZUVDzkNkV"];
   let tokenAccountInfo;
   const message = "Default Token Address";
-  let mint: anchor.web3.PublicKey;
+  let mint: solana.PublicKey;
   let fromTokenAccount: Account;
   const toWallet = new web3.PublicKey("DMEEpTxDJURpo3tgqFeoQRShdRoYJCwrnH3ZUVDzkNkV");
 
@@ -1057,14 +1057,15 @@ async function metaedit() {
   const keypair = await initializeKeypair(connections)
   //Buffer.from(JSON.parse(secretKey));
   const endpoint = "https://metaplex.devnet.rpcpool.com/";
-  const connection = new anchor.web3.Connection(endpoint);
+  //const connection = new anchor.web3.Connection(endpoint);
+  const connection = new solana.Connection(clusterApiUrl('devnet'), 'confirmed');
   // You have to enter your NFT Mint address Over Here
-  const mintKey = new anchor.web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
+  const mintKey = new solana.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
   const toWallet = new web3.PublicKey("9wz6BbdQg5sgb7wpERsz6SFTTnxtnVBLzVoYcKJYh1aq");
   const wallet = new Wallet(keypair);
   console.log("Connected Wallet", wallet.publicKey.toString());
 
-  const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
+  const TOKEN_METADATA_PROGRAM_ID = new solana.PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
   );
   // const [metadataAddress] = await PublicKey.findProgramAddress(
@@ -1079,7 +1080,7 @@ async function metaedit() {
     sellerFeeBasisPoints: 1000,
     creators: [
       {
-        address: new anchor.web3.PublicKey(
+        address: new solana.PublicKey(
           "AxFuniPo7RaDgPH6Gizf4GZmLQFc4M5ipckeeZfkrPNn"
         ),
         verified: false,
@@ -1101,31 +1102,8 @@ async function metaedit() {
     collectionDetails: null
   };
   console.log("metadata updated", updated_datas)
-  /* 
-   // BTW DeGods is my FAV collection although i cant afford one 🥲
-   const updatedData = new Data({
-     name: "DeGods",
-     symbol: "DG",
-     uri: "https://metadata.degods.com/g/4924.json",
-     sellerFeeBasisPoints: 1000,
-     creators: [
-       new Creator({
-         address: new solana.PublicKey(
-           "AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT"
-         ),
-         verified: false,
-         share: 0,
-       }),
-       new Creator({
-         address: wallet.publicKey,
-         verified: false,
-         share: 100,
-       }),
-     ],
-   });
- 
-  */
-  const [metadatakey] = await anchor.web3.PublicKey.findProgramAddress(
+
+  const [metadatakey] = await solana.PublicKey.findProgramAddress(
     [
       Buffer.from("metadata"),
       TOKEN_METADATA_PROGRAM_ID.toBuffer(),
@@ -1133,7 +1111,7 @@ async function metaedit() {
     ],
     TOKEN_METADATA_PROGRAM_ID
   );
-  console.log("key :",metadatakey)
+  console.log("key :", metadatakey)
 
   const accounts: UpdateMetadataAccountV2InstructionAccounts = {
     metadata: metadatakey,
@@ -1154,7 +1132,7 @@ async function metaedit() {
     args
   );
   console.log("update account ", updateMetadataAccount)
-  const transaction = new anchor.web3.Transaction()
+  const transaction = new solana.Transaction()
   transaction.add(updateMetadataAccount);
 
   const { blockhash } = await connection.getLatestBlockhash();
@@ -1165,7 +1143,11 @@ async function metaedit() {
   const signedTx = await wallet.signTransaction(transaction);
   console.log("transaction signed:", transaction)
   console.log("transaction signed222:", transaction.signatures)
-
+  const tx = await connection.sendTransaction(transaction, [wallet], {
+    skipPreflight: false,
+    preflightCommitment: 'singleGossip',
+  });
+  console.log("Transaction ID --", tx);
   const txid = await connection.sendRawTransaction(signedTx.serialize());
 
   console.log("Transaction ID --", txid);
@@ -1174,6 +1156,7 @@ async function metaedit() {
 }
 //mintings()
 metaedit()
+//testing2()
   .then(() => {
     console.log("Finished successfully");
     process.exit(0);
