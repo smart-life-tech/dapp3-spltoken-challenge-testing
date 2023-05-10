@@ -740,7 +740,7 @@ async function mintings() {
   const toWallets = new web3.PublicKey("BYoZMWpvLzVBkjZmQdq7EaLNcALc8xc5V3GdHmMaVkcZ");
   const mintAdd = new web3.PublicKey("3ZXStcZALjgxp5NPa2XXpwkRF2xqDhh1Ymmg2pkcrxSg");
   const tokenAccounts = await connection.getTokenAccountsByOwner(
-    new PublicKey('AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT'),
+    new solana.PublicKey('AmgWvVsaJy7UfWJS5qXn5DozYcsBiP2EXBH8Xdpj5YXT'),
     {
       programId: TOKEN_PROGRAM_ID,
     }
@@ -836,12 +836,12 @@ async function mintings() {
   console.log("------------------------------------------------------------");
   tokenAccounts.value.forEach((tokenAccount) => {
     const accountData = AccountLayout.decode(tokenAccount.account.data);
-    console.log(`${new PublicKey(accountData.mint)}   ${accountData.amount}`);
+    console.log(`${new solana.PublicKey(accountData.mint)}   ${accountData.amount}`);
   })
   const txSignature = await transfer(
     connection,
     payer,
-    tokenAccount.address,
+    tokenAccount1.address,
     payer.publicKey,
     payer.publicKey,
     5000000000 // 5billion
@@ -1154,8 +1154,8 @@ async function metaedit() {
 
 
 }
-//mintings()
-metaedit()
+mintings()
+//metaedit()
 //testing2()
   .then(() => {
     console.log("Finished successfully");
